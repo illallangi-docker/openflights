@@ -6,8 +6,6 @@ ENV FLYWAY_SHA256=118d5848f5a8c6e5ed6dad7dd32a7f5331d2d7594e5aac7a035d713d18f604
 ENV PHPCRUDAPI_VERSION=9bbc5bbfeb423830e9765b353f5912a3562b55fb
 ENV PHPCRUDAPI_SHA256=9e7674e8e47baac411f536b4c41dab260d475a450293763aa49020c20739ef96
 
-RUN yum -y install httpd php php-fpm php-gd php-mysql php-mbstring php-xml php-php-gettext
-
 COPY image/ /etc/ansible.d/image/
 RUN /usr/local/bin/ansible-runner.sh image
 
