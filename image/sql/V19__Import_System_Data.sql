@@ -1,0 +1,7 @@
+LOAD DATA LOCAL INFILE '/var/lib/flyway/sql/data/locales.dat'
+REPLACE INTO TABLE locales
+CHARACTER SET utf8
+FIELDS TERMINATED BY ','
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+(locale, name);

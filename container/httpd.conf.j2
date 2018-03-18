@@ -1,0 +1,100 @@
+ServerRoot "/etc/httpd"
+Listen {{ ansible_env.OPENFLIGHTS_SERVERPORT | default('8102') }}
+Include conf.modules.d/*.conf
+User {{ ansible_env.USER | default('docker') }}
+Group {{ ansible_env.GROUP | default(ansible_env.USER | default('docker')) }}
+ServerAdmin {{ ansible_env.OPENFLIGHTS_SERVERADMIN }}
+ServerName {{ ansible_env.OPENFLIGHTS_SERVERNAME }}:{{ ansible_env.OPENFLIGHTS_SERVERPORT | default('8102') }}
+
+<Directory />
+    AllowOverride none
+    Require all denied
+</Directory>
+
+DocumentRoot "/var/www/openflights"
+Alias "/api" "/var/www/php-crud-api"
+
+<Directory "/var/www/openflights">
+    Options -Indexes +FollowSymLinks +Includes
+    AllowOverride FileInfo
+    Require all granted
+    XBitHack Full
+
+    RewriteEngine on
+
+    RewriteRule   ^(.+)/img/(.+)$  /img/$1                 [PT,L,QSA]
+    # Map /query/xxx URLs into ?query=xxx format
+    RewriteRule   ^query/(.+)$      /index.php?query=$1 [PT,L,QSA]
+    RewriteRule   ^airline/(.+)$    /index.php?query=$1 [PT,L,QSA]
+    RewriteRule   ^airport/(.+)$    /index.php?query=$1 [PT,L,QSA]
+    # Map /trip/xxx URLs into ?trid=xxx format
+    RewriteRule   ^trip/(.+)$      /index.php?trid=$1     [PT,L,QSA]
+    # Map /user/xxx URLs into ?user=xxx format
+    RewriteRule   ^user/(.+)$      /index.php?user=$1     [PT,L,QSA]
+    # Map /html/xxx URLs into /html/xxx.php format
+    RewriteRule   ^/html/(.+)$     /html/$1.php             [PT,L,QSA]
+    # Map /banner/xxx URLs into ?user=xxx format
+    RewriteRule   ^banner/(.+)$     /badge/banner.php?user=$1     [PT,L,QSA]
+    # Map legacy /blog/xxx URLs into ?user=xxx format
+    RewriteRule   ^blog/(.+)$     http://blog.openflights.org/$1     [L,QSA]
+
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME}\.php -f
+    RewriteRule ^(.*)$ $1.php
+
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME}\.html -f
+    RewriteRule ^(.*)$ $1.html
+
+    # Compress output (enable mod_deflate)
+    AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml text/javascript application/x-javascript
+    # Netscape 4.x or IE 5.5/6.0
+    BrowserMatch ^Mozilla/4 no-gzip
+    # IE 5.5 and IE 6.0 have bugs! Ignore them until IE 7.0+
+    BrowserMatch \bMSIE\s7 !no-gzip
+    # IE 6.0 after SP2 has no gzip bugs!
+    BrowserMatch \bMSIE.*SV !no-gzip
+    # Sometimes Opera pretends to be IE with "Mozilla/4.0"
+    BrowserMatch \bOpera !no-gzip
+</Directory>
+
+<Directory /var/www/php-crud-api>
+    Options -Indexes +FollowSymLinks +Includes
+    AllowOverride None
+    Require all granted
+    
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(.*)$ /api/index.php/$1 [L,QSA]
+</Directory>
+
+<IfModule dir_module>
+    DirectoryIndex index.html
+</IfModule>
+
+<Files ".ht*">
+    Require all denied
+</Files>
+
+ErrorLog "|$cat"
+TransferLog "|$cat"
+
+LogLevel warn
+
+<IfModule mime_module>
+    TypesConfig /etc/mime.types
+    AddType application/x-compress .Z
+    AddType application/x-gzip .gz .tgz
+    AddType text/html .shtml
+    AddOutputFilter INCLUDES .shtml
+</IfModule>
+
+AddDefaultCharset UTF-8
+
+<IfModule mime_magic_module>
+    MIMEMagicFile conf/magic
+</IfModule>
+
+EnableSendfile on
+IncludeOptional conf.d/*.conf

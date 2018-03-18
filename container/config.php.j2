@@ -1,0 +1,22 @@
+<?php
+$host = "{{ ansible_env.OPENFLIGHTS_DB_HOST | default('db') }}";
+$dbname = "{{ ansible_env.MYSQL_DATABASE | default(ansible_env.OPENFLIGHTS_DB_NAME) }}";
+$user = "{{ ansible_env.MYSQL_USER | default(ansible_env.OPENFLIGHTS_DB_USER) }}";
+$password = "{{ ansible_env.MYSQL_PASSWORD | default(ansible_env.OPENFLIGHTS_DB_PASSWORD) }}";
+
+// Authentication for creating Github issues from suggested data updates
+// https://help.github.com/articles/creating-an-access-token-for-command-line-use/
+$GITHUB_REPO = "{{ ansible_env.OPENFLIGHTS_GITHUB_REPO }}";
+$GITHUB_USER = "{{ ansible_env.OPENFLIGHTS_GITHUB_USER }}";
+$GITHUB_ACCESS_TOKEN = "{{ ansible_env.OPENFLIGHTS_GITHUB_TOKEN }}";
+
+// Enable non-English locales? (true/false)
+// True requires PHP gettext extension, false works only if the extension is *not* installed
+$OF_USE_LOCALES = true;
+
+// Allow login via vBulletin cookies? (true/false)
+$OF_VBULLETIN_LOGIN = false;
+
+// OpenFlights UID for admin user, used only for special access to airport/airline DBs
+$OF_ADMIN_UID = 3;
+?>

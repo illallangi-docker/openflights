@@ -1,0 +1,88 @@
+<?php
+
+include 'api.php';
+
+class OpenFlightApi extends PHP_CRUD_API {
+  
+  function table_authorizer($cmd,$db,$tab)
+  {
+    $auth = array();
+    if ($result = $this->db->query('SELECT `result` FROM `api` WHERE `tab` = ? AND `col` IS NULL AND `cmd` = ?',array($tab,$cmd))) {
+      while ($row = $this->db->fetchRow($result)) $auth[] = $row[0];
+      $this->db->close($result);
+    }
+    
+    $size = sizeof($auth);
+    if ($size <> 1)
+    {
+      throw new Exception("table_authorizer(\"$cmd\",\"$db\",\"$tab\"): Expected 1 result from SQL query; received $size");
+    }
+    
+    switch (strtolower($auth[0]))
+    {
+      case 't':
+        return true;
+        break;
+      case 'f':
+        return false;
+        break;
+      default:
+        throw new Exception("table_authorizer(\"$cmd\",\"$db\",\"$tab\"): Result $auth[0] not implemented.");
+        break;
+    }
+  }
+
+  function column_authorizer($cmd,$db,$tab,$col)
+  {
+    $auth = array();
+    if ($result = $this->db->query('SELECT `result` FROM `api` WHERE `tab` = ? AND `col` = ? AND `cmd` = ?',array($tab,$col,$cmd))) {
+      while ($row = $this->db->fetchRow($result)) $auth[] = $row[0];
+      $this->db->close($result);
+    }
+    
+    $size = sizeof($auth);
+    if ($size <> 1)
+    {
+      throw new Exception("column_authorizer(\"$cmd\",\"$db\",\"$tab\", \"$col\"): Expected 1 result from SQL query; received $size");
+    }
+    
+    switch (strtolower($auth[0]))
+    {
+      case 't':
+        return true;
+        break;
+      case 'f':
+        return false;
+        break;
+      default:
+        throw new Exception("column_authorizer(\"$cmd\",\"$db\",\"$tab\", \"$col\"): Result $auth[0] not implemented.");
+        break;
+    }
+  }
+
+  function record_filter($cmd,$db,$tab)
+  {
+    return true;
+  }
+  
+  public function __construct($config)
+  {
+    $config['table_authorizer']  = function($cmd,$db,$tab)      { return $this->table_authorizer($cmd,$db,$tab); };
+    $config['column_authorizer'] = function($cmd,$db,$tab,$col) { return $this->column_authorizer($cmd,$db,$tab,$col); };
+    $config['record_filter']     = function($cmd,$db,$tab)      { return $this->record_filter($cmd,$db,$tab); };
+    parent::__construct($config);
+  }
+}
+  
+$api = new OpenFlightApi(array(
+  'dbengine'=>'MySQL',
+  'hostname'=>'{{ ansible_env.OPENFLIGHTS_DB_HOST | default('db') }}',
+  'username'=>'{{ ansible_env.MYSQL_USER | default(ansible_env.OPENFLIGHTS_DB_USER) }}',
+  'password'=>'{{ ansible_env.MYSQL_PASSWORD | default(ansible_env.OPENFLIGHTS_DB_PASSWORD) }}',
+  'database'=>'{{ ansible_env.MYSQL_DATABASE | default(ansible_env.OPENFLIGHTS_DB_NAME) }}',
+  'charset'=>'utf8'
+));
+
+$_SERVER['SCRIPT_NAME'] = '/api/';
+
+$api->executeCommand();

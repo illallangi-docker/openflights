@@ -1,0 +1,76 @@
+---
+- hosts: all
+  tasks:
+    - yum:
+        name:  "{{ item }}"
+        state: "present"
+      with_items:
+        - "httpd"
+        - "php"
+        - "php-fpm"
+        - "php-gd"
+        - "php-mysql"
+        - "php-mbstring"
+        - "php-xml"
+        - "php-php-gettext"
+    - get_url:
+        url:      "{{ item.url }}"
+        dest:     "{{ item.dest }}"
+        checksum: "sha256:{{ item.sha256 }}"
+      with_items:
+          - url:    "https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/{{ ansible_env.FLYWAY_VERSION }}/flyway-commandline-{{ ansible_env.FLYWAY_VERSION }}-linux-x64.tar.gz"
+            dest:   "/usr/local/src/flyway-commandline-{{ ansible_env.FLYWAY_VERSION }}-linux-x64.tar.gz"
+            sha256: "{{ ansible_env.FLYWAY_SHA256 }}"
+          - url:    "https://github.com/jpatokal/openflights/archive/{{ ansible_env.OPENFLIGHTS_VERSION }}.tar.gz"
+            dest:   "/usr/local/src/openflights-{{ ansible_env.OPENFLIGHTS_VERSION }}.tar.gz"
+            sha256: "{{ ansible_env.OPENFLIGHTS_SHA256 }}"
+          - url:    "https://github.com/mevdschee/php-crud-api/archive/{{ ansible_env.PHPCRUDAPI_VERSION }}.tar.gz"
+            dest:   "/usr/local/src/php-crud-api-{{ ansible_env.PHPCRUDAPI_VERSION }}.tar.gz"
+            sha256: "{{ ansible_env.PHPCRUDAPI_SHA256 }}"
+    - file:
+        path:  "{{ item }}"
+        state: "directory"
+      with_items:
+        - "/var/www/openflights/"
+        - "/var/www/php-crud-api/"
+        - "/var/lib/flyway/"
+    - unarchive:
+        src:     "{{ item.src }}"
+        dest:    "{{ item.dest }}"
+        creates: "{{ item.dest }}{{ item.creates }}"
+        extra_opts: ['--strip-components=1']
+      with_items:
+        - src:     "/usr/local/src/flyway-commandline-{{ ansible_env.FLYWAY_VERSION }}-linux-x64.tar.gz"
+          dest:    "/var/lib/flyway/"
+          creates: "README.txt"
+        - src:     "/usr/local/src/openflights-{{ ansible_env.OPENFLIGHTS_VERSION }}.tar.gz"
+          dest:    "/var/www/openflights/"
+          creates: "README.md"
+        - src:     "/usr/local/src/php-crud-api-{{ ansible_env.PHPCRUDAPI_VERSION }}.tar.gz"
+          dest:    "/var/www/php-crud-api/"
+          creates: "README.md"
+    - file:
+        path:  "{{ item }}"
+        state: "file"
+        mode:  "0755"
+      with_items:
+        - "/var/lib/flyway/flyway"
+    - file:
+        path:  "{{ item }}"
+        state: "absent"
+      with_items:
+        - "/var/www/html"
+        - "/var/www/openflights/CHANGES"
+        - "/var/www/openflights/CHANGES.OLD"
+        - "/var/www/openflights/INSTALL"
+        - "/var/www/openflights/README.md"
+        - "/var/www/openflights/about.html"
+        - "/var/www/openflights/apache2"
+        - "/var/www/openflights/faq.html"
+        - "/var/www/openflights/sql"
+    - copy:
+        src:  "{{ item.name }}"
+        dest: "{{ item.path }}{{ item.name }}"
+      with_items:
+        - name: "sql/"
+          path: "/var/lib/flyway/"

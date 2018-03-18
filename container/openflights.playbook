@@ -1,0 +1,74 @@
+---
+- hosts: all
+  tasks:
+    - fail:
+        msg: "{{ item }} is not defined. Typically you should run with: '-e {{ item }}=value'"
+      when:
+        - ansible_env[item] is not defined
+      with_items:
+        - "OPENFLIGHTS_TIMEZONE"
+        - "OPENFLIGHTS_NAME"
+        - "OPENFLIGHTS_NEWS"
+    - file:
+        path: "{{ item }}"
+        state: "directory"
+        owner:  "{{ ansible_env.USER | default('docker') }}"
+        group: "{{ ansible_env.GROUP | default(ansible_env.USER | default('docker')) }}"
+      with_items:
+        - "/run/httpd"
+        - "/var/lib/php/session"
+    - unarchive:
+        src:     "{{ item.src }}"
+        dest:    "{{ item.dest }}"
+        creates: "{{ item.dest }}{{ item.creates }}"
+        extra_opts: ['--strip-components=1']
+      with_items:
+        - src:     "/usr/local/src/php-crud-api-{{ ansible_env.PHPCRUDAPI_VERSION }}.tar.gz"
+          dest:    "/var/www/php-crud-api/"
+          creates: "README.md"
+    - template:
+        src: "{{ item.name }}.j2"
+        dest: "{{ item.path }}/{{ item.name }}"
+        owner:  "{{ item.owner | default(ansible_env.USER | default('docker')) }}"
+        group: "{{ item.group | default(ansible_env.GROUP | default(ansible_env.USER | default('docker'))) }}"
+        mode:  "{{ item.mode | default('0644') }}"
+      with_items:
+        - name: "openflights-entrypoint.sh"
+          path: "/usr/local/bin"
+          mode: "0755"
+        - name: "config.php"
+          path: "/var/www/openflights/php"
+        - name:  "httpd.conf"
+          path:  "/etc/httpd/conf"
+          mode:  "0644"
+          owner: "root"
+          group: "root"
+        - name:  "php.ini"
+          path:  "/etc"
+          mode:  "0644"
+          owner: "root"
+          group: "root"
+        - name:  "flyway.conf"
+          path:  "/var/lib/flyway/conf"
+          mode:  "0644"
+          owner: "root"
+          group: "root"
+        - name: "sidebar.html"
+          path: "/var/www/openflights/"
+          mode:  "0644"
+          owner: "root"
+          group: "root"
+        - name: "news.html"
+          path: "/var/www/openflights/html/"
+          mode:  "0644"
+          owner: "root"
+          group: "root"
+        - name: "index.php"
+          path: "/var/www/php-crud-api/"
+          mode:  "0644"
+          owner: "root"
+          group: "root"
+    - wait_for:
+        host:  "{{ ansible_env.OPENFLIGHTS_DB_HOST | default('db') }}"
+        port:  "{{ ansible_env.OPENFLIGHTS_DB_PORT | default('3306') }}"
+        sleep: 60
